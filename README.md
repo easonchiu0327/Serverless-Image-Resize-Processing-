@@ -2,6 +2,13 @@
 
 This project demonstrates a **fully automated image processing workflow** on AWS using an **event-driven architecture**.
 
+1. S3
+2. Lambda
+3. IAM
+4. Step function
+5. CloudWatch
+6. EventBridge
+7. API Getway
 
 ## 📘 AWS Docs Reference
 
