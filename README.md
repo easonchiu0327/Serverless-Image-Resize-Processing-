@@ -6,6 +6,7 @@ This project demonstrates a **fully automated image processing workflow** on AWS
 2. Lambda
 3. IAM
 4. Step function
+4.1 State machine
 5. CloudWatch
 6. EventBridge
 7. API Getway
