@@ -10,7 +10,7 @@ This project demonstrates a **fully automated image resize processing workflow**
 2.1 Create a function for resizing the image
 2.2 Runtime : Python 3.12
 2.3 Architecture : x86_64
-2.4 Create a new role with basic Lanbda permissions
+2.4 Create a new role with basic Lanbda permissions : for logging in CloudWatch
 2.5 lambda_function.py include the resizing code. 
 *The return of true and false will be the the output for choice under state machine.
 return{"ok": True};return{"ok": False}
@@ -115,7 +115,14 @@ Template body :
   "input": "$util.escapeJavaScript($input.body)" # a JSON-string representing the input for that execution
 }
 Ensures your incoming API request is transformed into the correct JSON shape that Step Functions expects.
-5.12 Deploy
-The link at the POST method will be API URL that you can post to the state machine
+5.12 Deploy and How it works
+5.12.1 The user sends a POST request to the API Gateway endpoint.  
+5.12.2 API Gateway invokes Step Functions via `StartExecution`.  
+5.12.3 Step Functions runs the Lambda function `s3-trigger-resized-images`.  
+* Current API only accepts JSON, not image files.
+5.12.4 Lambda fetches the image from S3, resizes it, and uploads to a target bucket.  
+5.12.5 Step Functions returns an execution ARN and success response.
 
 6. CloudWatch
+Since you create a new role with basic Lanbda permissions at 2.4, you can check the logging in CloudWatch.
+So, durinf testing or running the task, it's always good to check the status and what's the error we have.
