@@ -4,8 +4,23 @@
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
-        <mxCell id="izOLfPeFOD1SUZEN6vZN-1" value="" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
-          <mxGeometry x="270" y="120" width="120" height="60" as="geometry" />
+        <mxCell id="izOLfPeFOD1SUZEN6vZN-1" value="API" style="rounded=0;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+          <mxGeometry x="430" y="50" width="60" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="73_jM6ngDfmdUDh7MA-s-1" value="S3" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="190" y="160" width="60" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="73_jM6ngDfmdUDh7MA-s-2" value="Step Fu&lt;span style=&quot;background-color: transparent; color: light-dark(rgb(0, 0, 0), rgb(255, 255, 255));&quot;&gt;nction&lt;/span&gt;" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="410" y="160" width="100" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="73_jM6ngDfmdUDh7MA-s-3" value="Lambda" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="550" y="160" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="73_jM6ngDfmdUDh7MA-s-4" value="EventBridge" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="280" y="160" width="90" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="73_jM6ngDfmdUDh7MA-s-5" value="Cloud Watch" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="560" y="290" width="100" height="60" as="geometry" />
         </mxCell>
       </root>
     </mxGraphModel>
