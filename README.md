@@ -2,6 +2,9 @@
 
 This project demonstrates a **fully automated image resize processing workflow** on AWS using an **event-driven architecture**.
 
+1. Architecture
+
+
 1. S3
 1.1 Create 1 bucket for uploading original image.
 1.2 Create 1 bucket for output the reaized image.
@@ -126,3 +129,49 @@ Ensures your incoming API request is transformed into the correct JSON shape tha
 6. CloudWatch
 Since you create a new role with basic Lanbda permissions at 2.4, you can check the logging in CloudWatch.
 So, durinf testing or running the task, it's always good to check the status and what's the error we have.
+
+7. How to run
+7.1 API --> Step function
+   7.1.1 Use Postman platform
+   7.1.2 API URL: https://tibg7nysfk.execute-api.ca-central-1.amazonaws.com/Resize_Image_API/resize
+   7.1.3 Edit Body (The expected input structure)
+   {
+      "bucket": "lambda-trigger-bucket-original-images",
+      "key": "b.jpg", #The current image in S3
+      "size": 1000
+   }
+   7.1.4 Response
+   You should get 200 OK with the following response body
+   {
+    "executionArn": " ",
+    "startDate": "  "
+   }
+   7.1.5 Expected result
+   <img width="1719" height="614" alt="image" src="https://github.com/user-attachments/assets/15acb929-9411-4c2b-975d-ecaf1bf92eff" />
+
+7.2 Step Function --> Lambda
+   7.2.1 Start execution
+   7.2.2 Edit input (The expected input structure).
+   {
+      "bucket": "lambda-trigger-bucket-original-images",
+      "key": "b.jpg", #The current image in S3
+      "size": 1000
+   }
+   7.2.3 State output
+   {
+      "ok": true,
+      "destBucket": "lambda-trigger-bucket-resized-images",
+      "destKey": "output/b_resized.jpg",
+      "statusCode": 200,
+      "body": "Resized image uploaded to s3://lambda-trigger-bucket-resized-images/output/b_resized.jpg"
+   }
+   7.2.4 graph view
+   <img width="652" height="466" alt="image" src="https://github.com/user-attachments/assets/3686440d-7405-4089-baf3-0cb2205cce6a" />
+
+7.3 S3 --> EventBridge --> Step Function 
+    7.3.1 Upload image at origin bucket
+    7.3.2 Expected result: A resized image will be at the resized bucket
+    7.3.3 CloudWatch
+    <img width="1604" height="564" alt="image" src="https://github.com/user-attachments/assets/82f6108f-dadf-430d-9e20-719ec2524bb5" />
+
+        
