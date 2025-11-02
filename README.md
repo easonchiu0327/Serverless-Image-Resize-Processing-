@@ -1,177 +1,330 @@
-# Serverless-Image-Resize-Processing
+# Serverless Image Resize Processing
 
-This project demonstrates a **fully automated image resize processing workflow** on AWS using an **event-driven architecture**.
+This project demonstrates a **fully automated image resize processing workflow** on **AWS** using an **event-driven architecture**.
 
-1. Architecture
+---
 
+## 1. Architecture
 
-1. S3
-1.1 Create 1 bucket for uploading original image.
-1.2 Create 1 bucket for output the reaized image.
+![Architecture](https://github.com/user-attachments/assets/af073e49-1ebc-4403-b59f-b840d4a94eee)
 
-2. Lambda
-2.1 Create a function for resizing the image
-2.2 Runtime : Python 3.12
-2.3 Architecture : x86_64
-2.4 Create a new role with basic Lanbda permissions : for logging in CloudWatch
-2.5 lambda_function.py include the resizing code. 
-*The return of true and false will be the the output for choice under state machine.
-return{"ok": True};return{"ok": False}
-Reference from : https://heuristictechnopark.com/blog/building-serverless-image-processing-python-aws-lambda
-2.6 Set key(variable string in code) and the value(name of the target bucket) at Environment under Configuration, point the resized imagep to the target bucket.
-2.7 Create a layer for Pillow library, follow the instruction from : https://repost.aws/questions/QU11QL_JaISAOSykJteHyFHg/issue-with-importing-pillow-library-for-image-processing-in-aws-lambda-environment
-2.8 Add the layer for the function specify with an ARN.
-2.9 Identity-based policy-Permission
-2.9.1 Support the read → process → write workflow for image resizing.
-"Statement":[
-    "Effect":"Allow",
-    "Action":[
-            "s3:GetObject", # Read/download/fetch the file
-            "s3:PutObject", # Write/Process/upload the file
-            "s3:ListBucket" # See what files exist
-         ],
-    "Resource":"The ARN of the bucket"
-]
-Reference : https://docs.aws.amazon.com/AmazonS3/latest/userguide/example-policies-s3.html
+---
 
-3. Step function - Orchestrates the workflow
-3.1 Create a State machine
-3.2 Query language : JSONPath
-3.3 Invoke a lambda function, pick the created lambda function (resize image)
-3.4 A choice state after lambda that checks if the image resizing was successful, success and fail state. 
-3.4.1 Rule for Success state
-The return of "ok" from lambda_function.py
-Variable : $.ok
-Operator : is equal to
-Value : Bollean constant --> true
-3.4.2 Rule for Fail state
-The retuns of "ok" are not true will be fail state.
+## 2. S3
 
-4. EventBridge
-4.1 Set the notification
-Set the notification "on" at Amazon EventBridge at properties under oringinal image bucket.
-4.2 Create rule under Amazon EventBridge
-4.2.1 Rule type : event pattern
-4.2.2 Custom pattern JSJON editor # When an object is uploaded to this bucket, capture that event.
-{
-  "source": ["aws.s3"],
-  "detail-type": ["Object Created"], # what kind of S3 event occurred
-  "resources": ["The ARN of the original bucket"]
-}
-4.2.3 Target
-Type : AWS service
-Target : Step function state machine
-State machine : The one you create to Orchestrates the image resize workflow
-Execution role : Create a new role for this specific resource
-"Statement": [
-        {
-            "Effect": "Allow",
-            "Action": [
-                "states:StartExecution" # Allows starting a new execution of an AWS Step Functions state machine
-            ],
-            "Resource": [
-                "The ARN of the state machine"
-            ]
-        }
-]
-Configure target input : Input transformer
-Input path # Will be the expected input JSON either from bucket or API
-{"bucket":"$.detail.bucket.name","key":"$.detail.object.key","size":"$.detail.object.size"}
-Template
-{
-  "bucket": <bucket>,
-  "key": <key>,
-  "size": <size>
-}
-5. API Getway
-5.1 Choose REST API as a new API
-5.2 Create resource 
-5.3 Create method
-5.4 We choose POST for the method
-5.5 Integration type : AWS service
-5.6 AWS Region need to be the same as the step function you want to POST
-5.7 AWS service : Step function
-5.8 HTTP method : POST
-5.9 Action name : StartExecution
-5.10 Execution role - Permission
-5.10.1 Create a role in IAM by selecing Trusted entity type : AWS service
-5.10.2 Use case : API Gateway, it will include a Permissions policies that AmazonAPIGatewayPushToCloudWatchLogs
-5.10.3 After creating this role, add permissions by creating inline policy, that’s allowed to call the Step Functions API that actually starts a workflow
-{
-    "Version": "2012-10-17",
-    "Statement": [
-        {
-            "Sid": "AllowStartExecution",
-            "Effect": "Allow",
-            "Action": "states:StartExecution", # Allows starting a new execution of an AWS Step Functions state machine
-            "Resource": "The ARN of your state machine"
-        }
-    ]
-}
-5.10.4 After finish creating the roles for API Gatway, copy the ARN of this role back to Execution role
-Reference : https://docs.aws.amazon.com/step-functions/latest/dg/tutorial-api-gateway.html?utm_source=chatgpt.com
-5.11 Edit Mapping templates under Integration request
-Content type : application/json
-Template body : 
-{
-  "stateMachineArn": "The ARN of your state machine",
-  "input": "$util.escapeJavaScript($input.body)" # a JSON-string representing the input for that execution
-}
+1. Create **one bucket** for uploading original images.  
+2. Create **one bucket** for storing resized images.
+
+---
+
+## 3. Lambda
+
+1. Create a Lambda function for resizing images.  
+2. **Runtime:** Python 3.12  
+3. **Architecture:** x86_64  
+4. Create a **new role** with *basic Lambda permissions* (for CloudWatch logging).  
+5. `lambda_function.py` includes resizing code.  
+   - Returns `{"ok": True}` or `{"ok": False}` — used in Step Function’s Choice state.  
+   - Reference: [Heuristic Technopark Blog](https://heuristictechnopark.com/blog/building-serverless-image-processing-python-aws-lambda)
+6. Set **Environment Variables** under Configuration:  
+   - Key = variable name used in code  
+   - Value = name of the target (resized image) bucket  
+7. Create a **Lambda Layer** for the Pillow library.  
+   - Reference: [AWS Pillow Import Issue Solution](https://repost.aws/questions/QU11QL_JaISAOSykJteHyFHg/issue-with-importing-pillow-library-for-image-processing-in-aws-lambda-environment)  
+8. Add the created layer to your Lambda function (via ARN).  
+9. **IAM Permissions (Identity-Based Policy):**
+
+   ```json
+   "Statement": [
+     {
+       "Effect": "Allow",
+       "Action": [
+         "s3:GetObject",
+         "s3:PutObject",
+         "s3:ListBucket"
+       ],
+       "Resource": "The ARN of the bucket"
+     }
+   ]
+
+Reference: [AWS Example Policies for S3](https://docs.aws.amazon.com/AmazonS3/latest/userguide/example-policies-s3.html)
+
+---
+
+## 4. Step Function – Workflow Orchestration
+
+1. Create a **State Machine**.  
+2. **Query language:** JSONPath  
+3. Invoke your Lambda function (resize image).  
+4. Add a **Choice state** to check success/failure of resizing.
+
+   - **Success rule**  
+     - Variable: `$.ok`  
+     - Operator: `is equal to`  
+     - Value: Boolean constant → `true`  
+
+   - **Fail rule**  
+     - Any result where `"ok"` is not `true`.
+
+---
+
+## 5. EventBridge
+
+1. Enable **notifications** on the *original image bucket*.  
+2. Create a **Rule** in EventBridge.
+
+   - **Rule type:** Event pattern  
+   - **Custom JSON pattern:**
+     ```json
+     {
+       "source": ["aws.s3"],
+       "detail-type": ["Object Created"],
+       "resources": ["The ARN of the original bucket"]
+     }
+     ```
+
+3. **Target:**
+   - Type: AWS Service  
+   - Target: Step Function state machine  
+   - Execution Role permissions:
+     ```json
+     {
+       "Effect": "Allow",
+       "Action": ["states:StartExecution"],
+       "Resource": ["The ARN of the state machine"]
+     }
+     ```
+
+4. **Input Transformer:**
+
+   - **Input path**
+     ```json
+     {"bucket":"$.detail.bucket.name","key":"$.detail.object.key","size":"$.detail.object.size"}
+     ```
+   - **Template**
+     ```json
+     {
+       "bucket": <bucket>,
+       "key": <key>,
+       "size": <size>
+     }
+     ```
+
+---
+
+## 6. API Gateway
+
+1. Choose **REST API** → Create new API.  
+2. Create a **Resource**.  
+3. Create a **Method** → Choose **POST**.  
+4. **Integration type:** AWS Service  
+5. **AWS Region:** Must match your Step Function region.  
+6. **AWS Service:** Step Functions  
+7. **HTTP method:** POST  
+8. **Action name:** StartExecution  
+
+### 6.10 Execution Role – Permissions
+
+1. Create a role with **trusted entity type:** AWS Service  
+2. **Use case:** API Gateway  
+3. This automatically includes `AmazonAPIGatewayPushToCloudWatchLogs`.  
+4. Add inline policy for Step Functions:
+
+   ```json
+   {
+     "Version": "2012-10-17",
+     "Statement": [
+       {
+         "Sid": "AllowStartExecution",
+         "Effect": "Allow",
+         "Action": "states:StartExecution",
+         "Resource": "The ARN of your state machine"
+       }
+     ]
+   }
+Reference: [AWS Example Policies for S3](https://docs.aws.amazon.com/AmazonS3/latest/userguide/example-policies-s3.html)
+
+---
+
+## 4. Step Function – Workflow Orchestration
+
+1. Create a **State Machine**.  
+2. **Query language:** JSONPath  
+3. Invoke your Lambda function (resize image).  
+4. Add a **Choice state** to check success/failure of resizing.
+
+   - **Success rule**  
+     - Variable: `$.ok`  
+     - Operator: `is equal to`  
+     - Value: Boolean constant → `true`  
+
+   - **Fail rule**  
+     - Any result where `"ok"` is not `true`.
+
+---
+
+## 5. EventBridge
+
+1. Enable **notifications** on the *original image bucket*.  
+2. Create a **Rule** in EventBridge.
+
+   - **Rule type:** Event pattern  
+   - **Custom JSON pattern:**
+     ```json
+     {
+       "source": ["aws.s3"],
+       "detail-type": ["Object Created"],
+       "resources": ["The ARN of the original bucket"]
+     }
+     ```
+
+3. **Target:**
+   - Type: AWS Service  
+   - Target: Step Function state machine  
+   - Execution Role permissions:
+     ```json
+     {
+       "Effect": "Allow",
+       "Action": ["states:StartExecution"],
+       "Resource": ["The ARN of the state machine"]
+     }
+     ```
+
+4. **Input Transformer:**
+
+   - **Input path**
+     ```json
+     {"bucket":"$.detail.bucket.name","key":"$.detail.object.key","size":"$.detail.object.size"}
+     ```
+   - **Template**
+     ```json
+     {
+       "bucket": <bucket>,
+       "key": <key>,
+       "size": <size>
+     }
+     ```
+
+---
+
+## 6. API Gateway
+
+1. Choose **REST API** → Create new API.  
+2. Create a **Resource**.  
+3. Create a **Method** → Choose **POST**.  
+4. **Integration type:** AWS Service  
+5. **AWS Region:** Must match your Step Function region.  
+6. **AWS Service:** Step Functions  
+7. **HTTP method:** POST  
+8. **Action name:** StartExecution  
+9 **Execution Role** – Permissions
+
+1. Create a role with **trusted entity type:** AWS Service  
+2. **Use case:** API Gateway  
+3. This automatically includes `AmazonAPIGatewayPushToCloudWatchLogs`.  
+4. Add inline policy for Step Functions:
+
+   ```json
+   {
+     "Version": "2012-10-17",
+     "Statement": [
+       {
+         "Sid": "AllowStartExecution",
+         "Effect": "Allow",
+         "Action": "states:StartExecution",
+         "Resource": "The ARN of your state machine"
+       }
+     ]
+   }
+Reference: [AWS Step Functions API Gateway Tutorial](https://docs.aws.amazon.com/step-functions/latest/dg/tutorial-api-gateway.html?utm_source=chatgpt.com)
+
+---
+
+10 **Mapping Templates**
+
+- **Content type:** `application/json`  
+- **Template body:**
+
+  ```json
+  {
+    "stateMachineArn": "The ARN of your state machine",
+    "input": "$util.escapeJavaScript($input.body)"
+  }
 Ensures your incoming API request is transformed into the correct JSON shape that Step Functions expects.
-5.12 Deploy and How it works
-5.12.1 The user sends a POST request to the API Gateway endpoint.  
-5.12.2 API Gateway invokes Step Functions via `StartExecution`.  
-5.12.3 Step Functions runs the Lambda function `s3-trigger-resized-images`.  
-* Current API only accepts JSON, not image files.
-5.12.4 Lambda fetches the image from S3, resizes it, and uploads to a target bucket.  
-5.12.5 Step Functions returns an execution ARN and success response.
 
-6. CloudWatch
-Since you create a new role with basic Lanbda permissions at 2.4, you can check the logging in CloudWatch.
-So, durinf testing or running the task, it's always good to check the status and what's the error we have.
+---
 
-7. How to run
-7.1 API --> Step function
-   7.1.1 Use Postman platform
-   7.1.2 API URL: https://tibg7nysfk.execute-api.ca-central-1.amazonaws.com/Resize_Image_API/resize
-   7.1.3 Edit Body (The expected input structure)
-   {
+11 **Deploy and Workflow**
+
+1. The user sends a POST request to API Gateway.  
+2. API Gateway invokes Step Functions via `StartExecution`.  
+3. Step Functions runs the Lambda function `s3-trigger-resized-images`.  
+   - *Note:* Current API accepts **JSON**, not image files.  
+4. Lambda fetches the image from S3, resizes it, and uploads it to the target bucket.  
+5. Step Functions returns an execution ARN and success response.
+
+---
+
+## 7. CloudWatch
+
+Because Lambda uses a role with **basic permissions**, logs are automatically available in **CloudWatch**.  
+Use it to verify errors or monitor workflow execution.
+
+---
+
+## 8. How to Run
+
+### 8.1 API → Step Function
+
+1. Use **Postman** or similar tool.  
+2. **API URL:**  
+https://tibg7nysfk.execute-api.ca-central-1.amazonaws.com/Resize_Image_API/resize
+3. **Body (JSON):**
+    ```json
+    {
       "bucket": "lambda-trigger-bucket-original-images",
-      "key": "b.jpg", #The current image in S3
+      "key": "b.jpg",
       "size": 1000
-   }
-   7.1.4 Response
-   You should get 200 OK with the following response body
+    }
+4. **Expected Response:**
+   ```json
    {
-    "executionArn": " ",
-    "startDate": "  "
+     "executionArn": " ",
+     "startDate": " "
    }
-   7.1.5 Expected result
+5 **Expected result**
    <img width="1719" height="614" alt="image" src="https://github.com/user-attachments/assets/15acb929-9411-4c2b-975d-ecaf1bf92eff" />
 
-7.2 Step Function --> Lambda
-   7.2.1 Start execution
-   7.2.2 Edit input (The expected input structure).
+### 8.2 Step Function → Lambda
+
+1. Start a new execution.  
+2. **Input:**
+   ```json
    {
-      "bucket": "lambda-trigger-bucket-original-images",
-      "key": "b.jpg", #The current image in S3
-      "size": 1000
+     "bucket": "lambda-trigger-bucket-original-images",
+     "key": "b.jpg",
+     "size": 1000
    }
-   7.2.3 State output
+3. **State output**
+    ```json
    {
-      "ok": true,
+     "ok": true,
       "destBucket": "lambda-trigger-bucket-resized-images",
       "destKey": "output/b_resized.jpg",
       "statusCode": 200,
       "body": "Resized image uploaded to s3://lambda-trigger-bucket-resized-images/output/b_resized.jpg"
    }
-   7.2.4 graph view
+4 **graph view**
    <img width="652" height="466" alt="image" src="https://github.com/user-attachments/assets/3686440d-7405-4089-baf3-0cb2205cce6a" />
 
-7.3 S3 --> EventBridge --> Step Function 
-    7.3.1 Upload image at origin bucket
-    7.3.2 Expected result: A resized image will be at the resized bucket
-    7.3.3 CloudWatch
-    <img width="1604" height="564" alt="image" src="https://github.com/user-attachments/assets/82f6108f-dadf-430d-9e20-719ec2524bb5" />
+### 8.3 S3 → EventBridge → Step Function
+
+1. Upload an image to the **original bucket**.  
+2. **Expected Result:** A resized image appears in the **resized bucket**.  
+3. **CloudWatch Example:**  
+   ![CloudWatch Logs](https://github.com/user-attachments/assets/82f6108f-dadf-430d-9e20-719ec2524bb5)
+
+
+
 
         
