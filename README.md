@@ -122,107 +122,11 @@ Reference: [AWS Example Policies for S3](https://docs.aws.amazon.com/AmazonS3/la
 6. **AWS Service:** Step Functions  
 7. **HTTP method:** POST  
 8. **Action name:** StartExecution  
-
-### 6.10 Execution Role – Permissions
-
-1. Create a role with **trusted entity type:** AWS Service  
-2. **Use case:** API Gateway  
-3. This automatically includes `AmazonAPIGatewayPushToCloudWatchLogs`.  
-4. Add inline policy for Step Functions:
-
-   ```json
-   {
-     "Version": "2012-10-17",
-     "Statement": [
-       {
-         "Sid": "AllowStartExecution",
-         "Effect": "Allow",
-         "Action": "states:StartExecution",
-         "Resource": "The ARN of your state machine"
-       }
-     ]
-   }
-Reference: [AWS Example Policies for S3](https://docs.aws.amazon.com/AmazonS3/latest/userguide/example-policies-s3.html)
-
----
-
-## 4. Step Function – Workflow Orchestration
-
-1. Create a **State Machine**.  
-2. **Query language:** JSONPath  
-3. Invoke your Lambda function (resize image).  
-4. Add a **Choice state** to check success/failure of resizing.
-
-   - **Success rule**  
-     - Variable: `$.ok`  
-     - Operator: `is equal to`  
-     - Value: Boolean constant → `true`  
-
-   - **Fail rule**  
-     - Any result where `"ok"` is not `true`.
-
----
-
-## 5. EventBridge
-
-1. Enable **notifications** on the *original image bucket*.  
-2. Create a **Rule** in EventBridge.
-
-   - **Rule type:** Event pattern  
-   - **Custom JSON pattern:**
-     ```json
-     {
-       "source": ["aws.s3"],
-       "detail-type": ["Object Created"],
-       "resources": ["The ARN of the original bucket"]
-     }
-     ```
-
-3. **Target:**
-   - Type: AWS Service  
-   - Target: Step Function state machine  
-   - Execution Role permissions:
-     ```json
-     {
-       "Effect": "Allow",
-       "Action": ["states:StartExecution"],
-       "Resource": ["The ARN of the state machine"]
-     }
-     ```
-
-4. **Input Transformer:**
-
-   - **Input path**
-     ```json
-     {"bucket":"$.detail.bucket.name","key":"$.detail.object.key","size":"$.detail.object.size"}
-     ```
-   - **Template**
-     ```json
-     {
-       "bucket": <bucket>,
-       "key": <key>,
-       "size": <size>
-     }
-     ```
-
----
-
-## 6. API Gateway
-
-1. Choose **REST API** → Create new API.  
-2. Create a **Resource**.  
-3. Create a **Method** → Choose **POST**.  
-4. **Integration type:** AWS Service  
-5. **AWS Region:** Must match your Step Function region.  
-6. **AWS Service:** Step Functions  
-7. **HTTP method:** POST  
-8. **Action name:** StartExecution  
-9 **Execution Role** – Permissions
-
-1. Create a role with **trusted entity type:** AWS Service  
-2. **Use case:** API Gateway  
-3. This automatically includes `AmazonAPIGatewayPushToCloudWatchLogs`.  
-4. Add inline policy for Step Functions:
+9. **Execution Role** – Permissions
+   1. Create a role with **trusted entity type:** AWS Service  
+   2. **Use case:** API Gateway  
+   3. This automatically includes `AmazonAPIGatewayPushToCloudWatchLogs`.  
+   4. Add inline policy for Step Functions:
 
    ```json
    {
@@ -240,7 +144,7 @@ Reference: [AWS Step Functions API Gateway Tutorial](https://docs.aws.amazon.com
 
 ---
 
-10 **Mapping Templates**
+10. **Mapping Templates**
 
 - **Content type:** `application/json`  
 - **Template body:**
@@ -254,14 +158,13 @@ Ensures your incoming API request is transformed into the correct JSON shape tha
 
 ---
 
-11 **Deploy and Workflow**
-
-1. The user sends a POST request to API Gateway.  
-2. API Gateway invokes Step Functions via `StartExecution`.  
-3. Step Functions runs the Lambda function `s3-trigger-resized-images`.  
+11. **Deploy and Workflow**
+   - The user sends a POST request to API Gateway.  
+   - API Gateway invokes Step Functions via `StartExecution`.  
+   - Step Functions runs the Lambda function `s3-trigger-resized-images`.  
    - *Note:* Current API accepts **JSON**, not image files.  
-4. Lambda fetches the image from S3, resizes it, and uploads it to the target bucket.  
-5. Step Functions returns an execution ARN and success response.
+   - Lambda fetches the image from S3, resizes it, and uploads it to the target bucket.  
+   - Step Functions returns an execution ARN and success response.
 
 ---
 
@@ -292,7 +195,7 @@ https://tibg7nysfk.execute-api.ca-central-1.amazonaws.com/Resize_Image_API/resiz
      "executionArn": " ",
      "startDate": " "
    }
-5 **Expected result**
+5. **Expected result**
    <img width="1719" height="614" alt="image" src="https://github.com/user-attachments/assets/15acb929-9411-4c2b-975d-ecaf1bf92eff" />
 
 ### 8.2 Step Function → Lambda
@@ -314,8 +217,9 @@ https://tibg7nysfk.execute-api.ca-central-1.amazonaws.com/Resize_Image_API/resiz
       "statusCode": 200,
       "body": "Resized image uploaded to s3://lambda-trigger-bucket-resized-images/output/b_resized.jpg"
    }
-4 **graph view**
-   <img width="652" height="466" alt="image" src="https://github.com/user-attachments/assets/3686440d-7405-4089-baf3-0cb2205cce6a" />
+4. **Graph view**
+   
+      <img width="652" height="466" alt="image" src="https://github.com/user-attachments/assets/3686440d-7405-4089-baf3-0cb2205cce6a" />
 
 ### 8.3 S3 → EventBridge → Step Function
 
