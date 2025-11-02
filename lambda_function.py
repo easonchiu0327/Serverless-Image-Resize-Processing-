@@ -51,7 +51,7 @@ def lambda_handler(event, context):
         output_stream.seek(0) # rewind the data
 
         # Upload to the DESTINATION (resized) bucket
-        dest_bucket = os.environ.get('RESIZED_BUCKET') # environment variable
+        dest_bucket = os.environ.get('RESIZED_BUCKET') # set the target value at environment variable
         print("ENV RESIZED_BUCKET =", dest_bucket)
         if not dest_bucket:
             raise RuntimeError("RESIZED_BUCKET env var is not set")
